@@ -38,14 +38,14 @@ class IRCBot(asyncio.Protocol):
 
     # (called once)
     def connection_lost(self, exc):
-        print('The server closed the connection')
-        print('Stop the event loop')
+        print("The server closed the connection.")
+        print("Stop the event loop.")
         self.loop.stop()
 
 ### callbacks
     # (called when data is received)
     def data_received(self, data):
-        print('Data received: {}'.format(data.decode()))
+        print("Data received: {}".format(data.decode()))
         self.parse_and_react(data)
 
     # further there is:
@@ -55,14 +55,14 @@ class IRCBot(asyncio.Protocol):
 
     def send_data(self, data):
         print("Sending: ", data)
-        self.transport.write(data.encode("UTF-8"))
+        self.transport.write(data.encode('utf-8'))
 
     def parse_and_react(self, data):
-        self.readbuffer = self.readbuffer + data.decode("UTF-8")
+        self.readbuffer = self.readbuffer + data.decode('utf-8')
         # (debug-print)
         #print("READBUFFER: ", self.readbuffer)
 
-        temp = self.readbuffer.split("\n")
+        temp = self.readbuffer.split('\n')
         self.readbuffer = temp.pop()
 
         for line in temp:
