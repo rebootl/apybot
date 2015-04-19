@@ -55,10 +55,10 @@ class IRCBot(asyncio.Protocol):
 
     def send_data(self, data):
         print("Sending: ", data)
-        self.transport.write(data.encode('utf-8'))
+        self.transport.write(data.encode())
 
     def parse_and_react(self, data):
-        self.readbuffer = self.readbuffer + data.decode('utf-8')
+        self.readbuffer = self.readbuffer + data.decode()
         # (debug-print)
         #print("READBUFFER: ", self.readbuffer)
 
@@ -155,9 +155,9 @@ Using fortune.'''
     proc=subprocess.Popen(fortune_cmd, stdout=subprocess.PIPE)
     output=proc.communicate()[0]
 
-    return output.decode('utf-8')
+    return output.decode()
 #    return output
-#    out_dec=output.decode('utf-8')
+#    out_dec=output.decode()
 #
     # wrap the text
 #    out_wrap=textwrap.fill(out_dec, config.FORTUNE_WRAP_AT)
