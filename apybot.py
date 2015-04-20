@@ -106,7 +106,7 @@ class IRCBot(asyncio.Protocol):
 
             elif (sline[1] == "PRIVMSG" and self.nick in sline[2]):
                 # reply to a private message
-                self.reply(sline[0])
+                self.parse_private(sline[0], sline[3])
 
 
     def identify_me(self):
@@ -128,13 +128,22 @@ class IRCBot(asyncio.Protocol):
             self.send_data("PRIVMSG {} :{}\r\n".format(target, msg_item))
 
     def get_sender(self, prefix):
-        '''Get the sender nick from a prefix.'''
+        # Get the sender nick from a prefix.
         return prefix.split('!')[0]
 
-    def reply(self, prefix):
-        '''Reply with a fortune.'''
+    def parse_private(self, prefix, text):
+        # Parse a private message.
 
+        # get the sender
         sender = self.get_sender(prefix)
+
+        if (text == "quote"):
+            self.reply_quote(sender)
+        else:
+            self.write_msg(sender, "I don't know...")
+
+    def reply_quote(self, sender):
+        # Reply with a fortune.
 
         fortune_msg = gen_fortune()
 
@@ -178,10 +187,10 @@ def say_hi():
 ### functions
 
 def split_recv_msg(line):
-    '''Split received IRC message into defined parts.
+    # Split received IRC message into defined parts.
+    #
+    # Returns: prefix command args text
 
-Returns: prefix command args text
-'''
     prefix = None
     text = None
 
