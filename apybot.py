@@ -67,28 +67,39 @@ class IRCBot(asyncio.Protocol):
 
         for line in temp:
             line = line.rstrip()
-            line = line.split()
+
+            # split the line
+            # splitted line:
+            # [0]: prefix
+            # [1]: command
+            # [2]: args
+            # [3]: text
+            sline = split_recv_msg(line)
+
+            print(sline)
+
+#            line = line.split()
             # (debug-print)
             #print("LINE: ", line)
 
-            if (line[0] == "PING"):
-                self.send_data("PONG {}\r\n".format(line[1]))
+            if (sline[1] == "PING"):
+                self.send_data("PONG :{}\r\n".format(sline[3]))
 
-            elif (line[1] == "433"):
+            elif (sline[1] == "433"):
                 # nick already in use
                 self.nick = self.nick + "_"
                 self.identify_me()
 
-            elif (line[1] == "451"):
+            elif (sline[1] == "451"):
                 # join but not registered
                 # --> make retry check
-                self.loop.create_task(join())
+                self.loop.create_task(self.join())
 
-            elif (line[1] == "001"):
+            elif (sline[1] == "001"):
                 # registered
                 self.registered = True
 
-            elif (line[1] == "353" and line[2] == self.nick and line[4] == self.channel):
+            elif (sline[1] == "353" and self.nick in sline[2] and self.channel in sline[2]):
                 # joined channel
                 self.joined = True
 
@@ -135,13 +146,39 @@ class IRCBot(asyncio.Protocol):
             print("hii...")
             yield from asyncio.sleep(1)
 
-# a separate coroutine
+### separate coroutines
+
+# (example)
 @asyncio.coroutine
 def say_hi():
     while True:
         print("Hiii!")
         yield from asyncio.sleep(1)
 
+### functions
+
+def split_recv_msg(line):
+    '''Split received IRC message into defined parts.
+
+Returns: prefix command args text
+'''
+    prefix = None
+    text = None
+
+    if line[0] == ':':
+        prefix, line = line[1:].split(' ', 1)
+
+    if line.find(' :') != -1:
+        line, text = line.split(' :', 1)
+
+    if line.find(' ') != -1:
+        command, line = line.split(' ', 1)
+        args = line.split()
+    else:
+        command = line
+        args = None
+
+    return prefix, command, args, text
 
 
 FORTUNE_MAX_LENGTH="180"
