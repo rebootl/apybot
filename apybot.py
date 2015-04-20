@@ -34,6 +34,7 @@ class IRCBot(asyncio.Protocol):
 
         self.identify_me()
         self.loop.create_task(self.join())
+
         self.loop.create_task(self.whatever())
 
     # (called once)
@@ -103,6 +104,11 @@ class IRCBot(asyncio.Protocol):
                 # joined channel
                 self.joined = True
 
+            elif (sline[1] == "PRIVMSG" and self.nick in sline[2]):
+                # reply to a private message
+                self.reply(sline[0])
+
+
     def identify_me(self):
         self.send_data("NICK {}\r\n".format(self.nick))
         if (self.user_set == False):
@@ -116,10 +122,24 @@ class IRCBot(asyncio.Protocol):
         yield from asyncio.sleep(3)
         self.send_data("JOIN {}\r\n".format(self.channel))
 
-    def write_msg(self, msg):
-        msg_list=msg.splitlines()
+    def write_msg(self, target, msg):
+        msg_list = msg.splitlines()
         for msg_item in msg_list:
-            self.send_data("PRIVMSG {} :{}\r\n".format(self.channel, msg_item))
+            self.send_data("PRIVMSG {} :{}\r\n".format(target, msg_item))
+
+    def get_sender(self, prefix):
+        '''Get the sender nick from a prefix.'''
+        return prefix.split('!')[0]
+
+    def reply(self, prefix):
+        '''Reply with a fortune.'''
+
+        sender = self.get_sender(prefix)
+
+        fortune_msg = gen_fortune()
+
+        self.write_msg(sender, fortune_msg)
+
 
 ### "integrated" coroutines
 
@@ -134,11 +154,11 @@ class IRCBot(asyncio.Protocol):
             print("Connected and joined...")
 
             # send a fortune
-            fortune_msg = gen_fortune()
+            #fortune_msg = gen_fortune()
 
-            self.write_msg(fortune_msg)
+            #self.write_msg(fortune_msg)
 
-            yield from asyncio.sleep(20)
+            yield from asyncio.sleep(1)
 
     @asyncio.coroutine
     def say_ho(self):
@@ -215,7 +235,7 @@ def launch_bot_loop(server, nick, channel, port=6667):
 
 
 #launch_bot_loop("irc.freenode.netd", "pybot", "#test")
-#launch_bot_loop("irc.freenode.net", "pybot", "#test")
+#launch_bot_loop("irc.freenode.net", "pybot", "#revamp")
 launch_bot_loop("swisskomm.ch", "pybot", "#test")
 
 
