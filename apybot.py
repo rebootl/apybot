@@ -32,7 +32,7 @@ class IRCBot(asyncio.Protocol):
 ### connection callbacks
     # (called once)
     def connection_made(self, transport):
-        print("Connection made...")
+        #print("Connection made...")
         self.transport = transport
 
         self.identify_me()
@@ -43,14 +43,14 @@ class IRCBot(asyncio.Protocol):
 
     # (called once)
     def connection_lost(self, exc):
-        print("The server closed the connection.")
-        print("Stop the event loop.")
+        #print("The server closed the connection.")
+        #print("Stop the event loop.")
         self.loop.stop()
 
 ### callbacks
     # (called when data is received)
     def data_received(self, data):
-        print("Data received: {}".format(data.decode()))
+        #print("{}".format(data.decode()))
         self.parse_and_react(data)
 
     # further there is:
@@ -59,19 +59,22 @@ class IRCBot(asyncio.Protocol):
 ### own methods
 
     def send_data(self, data):
-        print("Sending: ", data)
+        #print("Sending: ", data)
         self.transport.write(data.encode())
 
     def parse_and_react(self, data):
         self.readbuffer = self.readbuffer + data.decode()
         # (debug-print)
-        #print("READBUFFER: ", self.readbuffer)
+        #print(self.readbuffer)
 
         temp = self.readbuffer.split('\n')
         self.readbuffer = temp.pop()
 
         for line in temp:
             line = line.rstrip()
+
+            # OUTPUT LINES
+            print(line)
 
             # split the line
             # splitted line:
@@ -81,7 +84,7 @@ class IRCBot(asyncio.Protocol):
             # [3]: text
             sline = split_recv_msg(line)
 
-            print(sline)
+            #print(sline)
 
 #            line = line.split()
             # (debug-print)
@@ -98,7 +101,7 @@ class IRCBot(asyncio.Protocol):
             elif (sline[1] == "451"):
                 # join but not registered
                 # --> make retry check
-                print("Warning: JOIN {} failed. Retrying...".format(self.channel))
+                #print("Warning: JOIN {} failed. Retrying...".format(self.channel))
                 self.join()
 
             elif (sline[1] == "001"):
@@ -158,11 +161,11 @@ class IRCBot(asyncio.Protocol):
     def whatever(self):
         while True:
             if not self.joined:
-                print("Waiting...")
+                #print("Waiting...")
                 yield from asyncio.sleep(1)
                 continue
 
-            print("Connected and joined...")
+            #print("Connected and joined...")
 
             # send a fortune
             #fortune_msg = gen_fortune()
@@ -174,7 +177,7 @@ class IRCBot(asyncio.Protocol):
     @asyncio.coroutine
     def say_ho(self):
         while True:
-            print("hii...")
+            #print("hii...")
             yield from asyncio.sleep(1)
 
 ### separate coroutines
@@ -183,7 +186,7 @@ class IRCBot(asyncio.Protocol):
 @asyncio.coroutine
 def say_hi():
     while True:
-        print("Hiii!")
+        #print("Hiii!")
         yield from asyncio.sleep(1)
 
 ### functions
