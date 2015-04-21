@@ -6,6 +6,9 @@
 # adapted to python 3, see also: https://gist.github.com/RobertSzkutak/1326452
 # heavily modified
 #
+# Features:
+# - asynchronous IO (using asyncio)
+#
 # cem, 2015-04-14
 #
 
@@ -128,11 +131,11 @@ class IRCBot(asyncio.Protocol):
             self.send_data("PRIVMSG {} :{}\r\n".format(target, msg_item))
 
     def get_sender(self, prefix):
-        # Get the sender nick from a prefix.
+        '''Get the sender nick from a prefix.'''
         return prefix.split('!')[0]
 
     def parse_private(self, prefix, text):
-        # Parse a private message.
+        '''Parse a private message.'''
 
         # get the sender
         sender = self.get_sender(prefix)
@@ -143,7 +146,7 @@ class IRCBot(asyncio.Protocol):
             self.write_msg(sender, "I don't know...")
 
     def reply_quote(self, sender):
-        # Reply with a fortune.
+        '''Reply with a fortune.'''
 
         fortune_msg = gen_fortune()
 
@@ -187,9 +190,9 @@ def say_hi():
 ### functions
 
 def split_recv_msg(line):
-    # Split received IRC message into defined parts.
-    #
-    # Returns: prefix command args text
+    '''Split received IRC message into defined parts.
+
+Returns: prefix command args text'''
 
     prefix = None
     text = None
@@ -246,6 +249,3 @@ def launch_bot_loop(server, nick, channel, port=6667):
 #launch_bot_loop("irc.freenode.netd", "pybot", "#test")
 #launch_bot_loop("irc.freenode.net", "pybot", "#revamp")
 launch_bot_loop("swisskomm.ch", "pybot", "#test")
-
-
-
