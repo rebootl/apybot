@@ -36,7 +36,8 @@ class IRCBot(asyncio.Protocol):
         self.transport = transport
 
         self.identify_me()
-        self.loop.create_task(self.join())
+        # (call join when connected)
+        #self.loop.create_task(self.join())
 
         self.loop.create_task(self.whatever())
 
@@ -97,11 +98,13 @@ class IRCBot(asyncio.Protocol):
             elif (sline[1] == "451"):
                 # join but not registered
                 # --> make retry check
-                self.loop.create_task(self.join())
+                print("Warning: JOIN {} failed. Retrying...".format(self.channel))
+                self.join()
 
             elif (sline[1] == "001"):
                 # registered
                 self.registered = True
+                self.join()
 
             elif (sline[1] == "353" and self.nick in sline[2] and self.channel in sline[2]):
                 # joined channel
@@ -118,11 +121,7 @@ class IRCBot(asyncio.Protocol):
             self.send_data("USER {} {} {} :Python bot!\r\n".format(self.nick, self.nick, self.nick))
             self.user_set = True
 
-    @asyncio.coroutine
     def join(self):
-
-        # give a slight timeout to let register
-        yield from asyncio.sleep(3)
         self.send_data("JOIN {}\r\n".format(self.channel))
 
     def write_msg(self, target, msg):
@@ -247,5 +246,5 @@ def launch_bot_loop(server, nick, channel, port=6667):
 
 
 #launch_bot_loop("irc.freenode.netd", "pybot", "#test")
-#launch_bot_loop("irc.freenode.net", "pybot", "#revamp")
-launch_bot_loop("swisskomm.ch", "pybot", "#test")
+launch_bot_loop("irc.freenode.net", "pybot", "#revamp")
+#launch_bot_loop("swisskomm.ch", "pybot", "#test")
