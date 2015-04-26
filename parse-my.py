@@ -10,14 +10,19 @@ def split_recv_msg(line):
 
 Returns: prefix command args text'''
 
-    prefix = None
-    text = None
+    # opt: use else instead of default value to avoid write
+    #prefix = None
+    #text = None
 
     if line[0] == ':':
         prefix, line = line[1:].split(' ', 1)
+    else:
+        prefix = None
 
     if line.find(' :') != -1:
         line, text = line.split(' :', 1)
+    else:
+        text = None
 
     if line.find(' ') != -1:
         command, line = line.split(' ', 1)
