@@ -16,6 +16,22 @@ import asyncio
 import time
 import subprocess
 
+
+### Settings
+# (test)
+# IRC
+IRC_SERVER = "swisskomm.ch"
+IRC_BOTNICK = "apybot"
+IRC_CHANNEL = "#test"
+
+# Hosts/Servers to check
+HOSTLIST = [ "localhost", "www.google.ch", "amd64box", "gugus" ]
+
+CHECK_TIMEOUT_S = 60
+
+# (real)
+# --cut--
+
 class IRCBot(asyncio.Protocol):
 
     def __init__(self, loop, nick, channel):
@@ -39,7 +55,7 @@ class IRCBot(asyncio.Protocol):
         # (call join when connected)
         #self.loop.create_task(self.join())
 
-        self.loop.create_task(self.whatever())
+        self.loop.create_task(self.check_hosts_forever())
 
     # (called once)
     def connection_lost(self, exc):
@@ -154,37 +170,61 @@ class IRCBot(asyncio.Protocol):
 
 ### "integrated" coroutines
 
+    # (example)
+#    @asyncio.coroutine
+#    def whatever(self):
+#        while True:
+#            if not self.joined:
+#                print("Waiting...")
+#                yield from asyncio.sleep(1)
+#                continue
+#
+#            print("Connected and joined...")
+#
+#            # send a fortune
+#            #fortune_msg = gen_fortune()
+#
+#            #self.write_msg(fortune_msg)
+#
+#            yield from asyncio.sleep(1)
+
+    # (example)
+#    @asyncio.coroutine
+#    def say_ho(self):
+#        while True:
+#            print("hii...")
+#            yield from asyncio.sleep(1)
+
     @asyncio.coroutine
-    def whatever(self):
+    def check_hosts_forever(self):
+        # check if hosts are up, periodically
+
+        # (wait until joined)
         while True:
             if not self.joined:
                 print("Waiting...")
                 yield from asyncio.sleep(1)
                 continue
 
-            print("Connected and joined...")
+            # checking hosts
+            for hostname in HOSTLIST:
+                ping_returncode = ping_host(hostname)
 
-            # send a fortune
-            #fortune_msg = gen_fortune()
+                # notify (only if not reachable)
+                if ping_returncode != 0:
+                    self.write_msg(IRC_CHANNEL, "Warnung: Kann host {} nicht erreichen".format(hostname))
 
-            #self.write_msg(fortune_msg)
-
-            yield from asyncio.sleep(1)
-
-    @asyncio.coroutine
-    def say_ho(self):
-        while True:
-            print("hii...")
-            yield from asyncio.sleep(1)
+            # timeout
+            yield from asyncio.sleep(CHECK_TIMEOUT_S)
 
 ### separate coroutines
 
 # (example)
-@asyncio.coroutine
-def say_hi():
-    while True:
-        print("Hiii!")
-        yield from asyncio.sleep(1)
+#@asyncio.coroutine
+#def say_hi():
+#    while True:
+#        print("Hiii!")
+#        yield from asyncio.sleep(1)
 
 ### functions
 
@@ -233,6 +273,19 @@ Using fortune.'''
 #    return out_wrap
 
 
+def ping_host(hostname):
+    # ping host and return the returncode
+
+    ping_cmd = [ "ping", "-c1", "-w60", hostname ]
+
+    proc = subprocess.Popen(ping_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    #proc = subprocess.Popen(ping_cmd)
+
+    # (set out, err needed ?)
+    proc.communicate()
+
+    return proc.returncode
+
 
 def launch_bot_loop(server, nick, channel, port=6667):
 
@@ -245,6 +298,4 @@ def launch_bot_loop(server, nick, channel, port=6667):
     loop.close()
 
 
-#launch_bot_loop("irc.freenode.netd", "pybot", "#test")
-launch_bot_loop("irc.freenode.net", "pybot", "#revamp")
-#launch_bot_loop("swisskomm.ch", "pybot", "#test")
+launch_bot_loop(IRC_SERVER, IRC_BOTNICK, IRC_CHANNEL)
