@@ -8,6 +8,9 @@
 #
 # Features:
 # - asynchronous IO (using asyncio)
+# - write quotes, on demand (using fortune)
+# - periodic checking of hosts (using ping)
+# - on demand checking of hosts (using ping)
 #
 # cem, 2015-04-14
 #
@@ -27,8 +30,11 @@ IRC_CHANNEL = "#test"
 # Hosts/Servers to check
 HOSTLIST = [ "localhost", "www.google.ch", "amd64box", "gugus" ]
 
+# check interval in seconds
 CHECK_TIMEOUT_S = 60
 
+WARNMSG_1 = "WARNUNG: Kann host {} nicht erreichen..."
+WARNMSG_2 = "(Ping returncode: {})"
 # (real)
 # --cut--
 
@@ -45,7 +51,7 @@ class IRCBot(asyncio.Protocol):
         self.registered = False
         self.joined = False
 
-### connection callbacks
+### connection callbacks (from asyncio.Protocol)
     # (called once)
     def connection_made(self, transport):
         print("Connection made...")
@@ -63,7 +69,7 @@ class IRCBot(asyncio.Protocol):
         print("Stop the event loop.")
         self.loop.stop()
 
-### callbacks
+### callbacks (from asyncio.Protocol)
     # (called when data is received)
     def data_received(self, data):
         print("Data received: {}".format(data.decode()))
@@ -73,6 +79,8 @@ class IRCBot(asyncio.Protocol):
     # def eof_received()
 
 ### own methods
+
+## basic IRC handling
 
     def send_data(self, data):
         print("Sending: ", data)
@@ -149,6 +157,8 @@ class IRCBot(asyncio.Protocol):
         '''Get the sender nick from a prefix.'''
         return prefix.split('!')[0]
 
+## private conversation
+
     def parse_private(self, prefix, text):
         '''Parse a private message.'''
 
@@ -157,8 +167,12 @@ class IRCBot(asyncio.Protocol):
 
         if (text == "quote"):
             self.reply_quote(sender)
+        elif (text == "check"):
+            self.checkhosts(sender)
         else:
             self.write_msg(sender, "I don't know...")
+
+# replies/actions
 
     def reply_quote(self, sender):
         '''Reply with a fortune.'''
@@ -167,6 +181,24 @@ class IRCBot(asyncio.Protocol):
 
         self.write_msg(sender, fortune_msg)
 
+    def checkhosts(self, sender):
+        '''Check hosts on demand and reply.'''
+
+        for hostname in HOSTLIST:
+            ping_returncode = ping_host(hostname)
+
+            self.send_check_result(sender, hostname, ping_returncode, False)
+
+    def send_check_result(self, target, hostname, ping_ret, onlywarn=True):
+        '''Send results.'''
+
+        if ping_ret != 0:
+            self.write_msg(target, WARNMSG_1.format(hostname))
+            self.write_msg(target, WARNMSG_2.format(ping_ret))
+        else:
+            if not onlywarn:
+                self.write_msg(target, "OK: Host {} erreicht.".format(hostname))
+                self.write_msg(target, WARNMSG_2.format(ping_ret))
 
 ### "integrated" coroutines
 
@@ -197,7 +229,7 @@ class IRCBot(asyncio.Protocol):
 
     @asyncio.coroutine
     def check_hosts_forever(self):
-        # check if hosts are up, periodically
+        '''Check periodically if hosts are up.'''
 
         # (wait until joined)
         while True:
@@ -211,8 +243,7 @@ class IRCBot(asyncio.Protocol):
                 ping_returncode = ping_host(hostname)
 
                 # notify (only if not reachable)
-                if ping_returncode != 0:
-                    self.write_msg(IRC_CHANNEL, "Warnung: Kann host {} nicht erreichen".format(hostname))
+                self.send_check_result(IRC_CHANNEL, hostname, ping_returncode)
 
             # timeout
             yield from asyncio.sleep(CHECK_TIMEOUT_S)
@@ -264,13 +295,6 @@ Using fortune.'''
     output=proc.communicate()[0]
 
     return output.decode()
-#    return output
-#    out_dec=output.decode()
-#
-    # wrap the text
-#    out_wrap=textwrap.fill(out_dec, config.FORTUNE_WRAP_AT)
-#
-#    return out_wrap
 
 
 def ping_host(hostname):
@@ -292,7 +316,6 @@ def launch_bot_loop(server, nick, channel, port=6667):
     loop = asyncio.get_event_loop()
 
     conn = loop.create_connection(lambda: IRCBot(loop, nick, channel), server, port)
-
     loop.run_until_complete(conn)
     loop.run_forever()
     loop.close()
