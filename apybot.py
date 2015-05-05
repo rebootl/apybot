@@ -166,23 +166,27 @@ class IRCBot(asyncio.Protocol):
         sender = self.get_sender(prefix)
 
         if (text == "quote"):
-            self.reply_quote(sender)
+            self.conv_quote(sender)
         elif (text == "check"):
-            self.checkhosts(sender)
+            self.conv_checkhosts(sender)
+        elif (text == "status"):
+            self.conv_status(sender)
+        elif (text == "help"):
+            self.conv_help(sender)
         else:
             self.write_msg(sender, "I don't know...")
 
 # replies/actions
 
-    def reply_quote(self, sender):
+    def conv_quote(self, sender):
         '''Reply with a fortune.'''
 
         fortune_msg = gen_fortune()
 
         self.write_msg(sender, fortune_msg)
 
-    def checkhosts(self, sender):
-        '''Check hosts on demand and reply.'''
+    def conv_checkhosts(self, sender):
+        '''Perform hosts check and reply.'''
 
         for hostname in HOSTLIST:
             ping_returncode = ping_host(hostname)
@@ -199,6 +203,22 @@ class IRCBot(asyncio.Protocol):
             if not onlywarn:
                 self.write_msg(target, "OK: Host {} erreicht.".format(hostname))
                 self.write_msg(target, WARNMSG_2.format(ping_ret))
+
+    def conv_status(self, sender):
+        '''Give status output.'''
+
+        self.write_msg(sender, "Hosts checking interval: {} minutes".format(CHECK_TIMEOUT_S/60))
+
+    def conv_help(self, sender):
+        '''Give help output.'''
+
+        self.write_msg(sender, "This is apybot (A simple asynchronous Python bot).")
+        self.write_msg(sender, "Commands implemented:")
+        self.write_msg(sender, "quote   output a quote")
+        self.write_msg(sender, "check   perform hosts check (as configured)")
+        self.write_msg(sender, "        and print results")
+        self.write_msg(sender, "status  give status output")
+        self.write_msg(sender, "help    print this help")
 
 ### "integrated" coroutines
 
