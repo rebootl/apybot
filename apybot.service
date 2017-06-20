@@ -1,0 +1,18 @@
+[Unit]
+Description=Simple host/server alerting IRC bot
+Documentation=http://wiki.revamp-it.ch/index.php?title=Server_Monitoring_mit_apybot
+
+After=network.target
+Requires=network.target
+
+[Service]
+User=revamp
+#ExecStart=<path-to-apybot>/apybot-revamp.py
+
+# Restart (!)
+Restart=always
+# timeout
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
