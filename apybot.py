@@ -21,11 +21,11 @@ import subprocess
 
 
 ### Settings
-# (test)
 # IRC
-IRC_SERVER = "swisskomm.ch"
+#IRC_SERVER = "swisskomm.ch"
+IRC_SERVER = "irc.freenode.net"
 IRC_BOTNICK = "apybot"
-IRC_CHANNEL = "#test"
+IRC_CHANNEL = "#revamp"
 
 # Hosts/Servers to check
 HOSTLIST = [ "localhost", "www.google.ch", "amd64box", "gugus" ]
@@ -35,8 +35,15 @@ CHECK_TIMEOUT_S = 60
 
 WARNMSG_1 = "WARNUNG: Kann host {} nicht erreichen..."
 WARNMSG_2 = "(Ping returncode: {})"
-# (real)
-# --cut--
+
+# anti-flood delay in seconds
+ANTI_FLOOD_DELAY = 1
+
+# fortune quotes
+FORTUNE_MAX_LENGTH="180"
+FORTUNE_PATH="/usr/games/fortune"
+
+### Program
 
 class IRCBot(asyncio.Protocol):
 
@@ -72,7 +79,8 @@ class IRCBot(asyncio.Protocol):
 ### callbacks (from asyncio.Protocol)
     # (called when data is received)
     def data_received(self, data):
-        print("Data received: {}".format(data.decode()))
+        # (debug)
+        #print("Data received: {}".format(data.decode()))
         self.parse_and_react(data)
 
     # further there is:
@@ -83,7 +91,8 @@ class IRCBot(asyncio.Protocol):
 ## basic IRC handling
 
     def send_data(self, data):
-        print("Sending: ", data)
+        # (debug)
+        #print("Sending: ", data)
         self.transport.write(data.encode())
 
     def parse_and_react(self, data):
@@ -105,9 +114,10 @@ class IRCBot(asyncio.Protocol):
             # [3]: text
             sline = split_recv_msg(line)
 
-            print(sline)
+            # (debug)
+            #print(sline)
 
-#            line = line.split()
+            #line = line.split()
             # (debug-print)
             #print("LINE: ", line)
 
@@ -132,6 +142,7 @@ class IRCBot(asyncio.Protocol):
 
             elif (sline[1] == "353" and self.nick in sline[2] and self.channel in sline[2]):
                 # joined channel
+                print("Joined Channel.")
                 self.joined = True
 
             elif (sline[1] == "PRIVMSG" and self.nick in sline[2]):
@@ -152,6 +163,8 @@ class IRCBot(asyncio.Protocol):
         msg_list = msg.splitlines()
         for msg_item in msg_list:
             self.send_data("PRIVMSG {} :{}\r\n".format(target, msg_item))
+            # anti-flood protection
+            time.sleep(ANTI_FLOOD_DELAY)
 
     def get_sender(self, prefix):
         '''Get the sender nick from a prefix.'''
@@ -303,13 +316,11 @@ Returns: prefix command args text'''
     return prefix, command, args, text
 
 
-FORTUNE_MAX_LENGTH="180"
-
 def gen_fortune():
     '''Generate a fortune message.
 Using fortune.'''
     # -s short
-    fortune_cmd=['fortune', '-n'+FORTUNE_MAX_LENGTH, '-s']
+    fortune_cmd=[FORTUNE_PATH, '-n'+FORTUNE_MAX_LENGTH, '-s']
 
     proc=subprocess.Popen(fortune_cmd, stdout=subprocess.PIPE)
     output=proc.communicate()[0]
