@@ -12,6 +12,8 @@
 # - periodic checking of hosts (using ping)
 # - on demand checking of hosts (using ping)
 #
+# Usage: Copy config-example.py to config.py and adapt settings.
+#
 # cem, 2015-04-14
 #
 
@@ -19,31 +21,7 @@ import asyncio
 import time
 import subprocess
 
-
-### Settings
-# IRC
-#IRC_SERVER = "swisskomm.ch"
-IRC_SERVER = "irc.freenode.net"
-IRC_BOTNICK = "apybot"
-IRC_CHANNEL = "#revamp"
-
-# Hosts/Servers to check
-HOSTLIST = [ "localhost", "www.google.ch", "amd64box", "gugus" ]
-
-# check interval in seconds
-CHECK_TIMEOUT_S = 60
-
-WARNMSG_1 = "WARNUNG: Kann host {} nicht erreichen..."
-WARNMSG_2 = "(Ping returncode: {})"
-
-# anti-flood delay in seconds
-ANTI_FLOOD_DELAY = 1
-
-# fortune quotes
-FORTUNE_MAX_LENGTH="180"
-FORTUNE_PATH="/usr/games/fortune"
-
-### Program
+import config
 
 class IRCBot(asyncio.Protocol):
 
@@ -164,7 +142,7 @@ class IRCBot(asyncio.Protocol):
         for msg_item in msg_list:
             self.send_data("PRIVMSG {} :{}\r\n".format(target, msg_item))
             # anti-flood protection
-            time.sleep(ANTI_FLOOD_DELAY)
+            time.sleep(config.ANTI_FLOOD_DELAY)
 
     def get_sender(self, prefix):
         '''Get the sender nick from a prefix.'''
@@ -201,7 +179,7 @@ class IRCBot(asyncio.Protocol):
     def conv_checkhosts(self, sender):
         '''Perform hosts check and reply.'''
 
-        for hostname in HOSTLIST:
+        for hostname in config.HOSTLIST:
             ping_returncode = ping_host(hostname)
 
             self.send_check_result(sender, hostname, ping_returncode, False)
@@ -210,17 +188,17 @@ class IRCBot(asyncio.Protocol):
         '''Send results.'''
 
         if ping_ret != 0:
-            self.write_msg(target, WARNMSG_1.format(hostname))
-            self.write_msg(target, WARNMSG_2.format(ping_ret))
+            self.write_msg(target, config.WARNMSG_1.format(hostname))
+            self.write_msg(target, config.WARNMSG_2.format(ping_ret))
         else:
             if not onlywarn:
                 self.write_msg(target, "OK: Host {} erreicht.".format(hostname))
-                self.write_msg(target, WARNMSG_2.format(ping_ret))
+                self.write_msg(target, config.WARNMSG_2.format(ping_ret))
 
     def conv_status(self, sender):
         '''Give status output.'''
 
-        self.write_msg(sender, "Hosts checking interval: {} minutes".format(CHECK_TIMEOUT_S/60))
+        self.write_msg(sender, "Hosts checking interval: {} minutes".format(config.CHECK_TIMEOUT_S/60))
 
     def conv_help(self, sender):
         '''Give help output.'''
@@ -272,14 +250,14 @@ class IRCBot(asyncio.Protocol):
                 continue
 
             # checking hosts
-            for hostname in HOSTLIST:
+            for hostname in config.HOSTLIST:
                 ping_returncode = ping_host(hostname)
 
                 # notify (only if not reachable)
-                self.send_check_result(IRC_CHANNEL, hostname, ping_returncode)
+                self.send_check_result(config.IRC_CHANNEL, hostname, ping_returncode)
 
             # timeout
-            yield from asyncio.sleep(CHECK_TIMEOUT_S)
+            yield from asyncio.sleep(config.CHECK_TIMEOUT_S)
 
 ### separate coroutines
 
@@ -320,7 +298,7 @@ def gen_fortune():
     '''Generate a fortune message.
 Using fortune.'''
     # -s short
-    fortune_cmd=[FORTUNE_PATH, '-n'+FORTUNE_MAX_LENGTH, '-s']
+    fortune_cmd=[config.FORTUNE_PATH, '-n'+config.FORTUNE_MAX_LENGTH, '-s']
 
     proc=subprocess.Popen(fortune_cmd, stdout=subprocess.PIPE)
     output=proc.communicate()[0]
@@ -352,4 +330,4 @@ def launch_bot_loop(server, nick, channel, port=6667):
     loop.close()
 
 
-launch_bot_loop(IRC_SERVER, IRC_BOTNICK, IRC_CHANNEL)
+launch_bot_loop(config.IRC_SERVER, config.IRC_BOTNICK, config.IRC_CHANNEL)
