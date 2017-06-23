@@ -14,8 +14,8 @@
 #
 # Usage: Copy config-example.py to config.py and adapt settings.
 #
-# cem, 2015-04-14
-#
+# 2015-04-14, cem
+# 2017-06-25, cem: rework
 
 import asyncio
 import time
@@ -35,6 +35,8 @@ class IRCBot(asyncio.Protocol):
         self.user_set = False
         self.registered = False
         self.joined = False
+
+        self.funcomms = { 'lul': ":)" }
 
 ### connection callbacks (from asyncio.Protocol)
     # (called once)
@@ -93,7 +95,7 @@ class IRCBot(asyncio.Protocol):
             sline = split_recv_msg(line)
 
             # (debug)
-            #print(sline)
+            print(sline)
 
             #line = line.split()
             # (debug-print)
@@ -125,8 +127,14 @@ class IRCBot(asyncio.Protocol):
 
             elif (sline[1] == "PRIVMSG" and self.nick in sline[2]):
                 # reply to a private message
-                self.parse_private(sline[0], sline[3])
+                #self.parse_private(sline[0], sline[3])
+                sender = self.get_sender(sline[0])
+                self.parse_commands(sender, sender, sline[3])
 
+            elif (sline[1] == "PRIVMSG" and sline[2][0] == self.channel):
+                # reply in general chat
+                if sline[3].startswith('!'):
+                    self.parse_commands(sline[0], sline[2][0], sline[3][1:])
 
     def identify_me(self):
         self.send_data("NICK {}\r\n".format(self.nick))
@@ -148,26 +156,44 @@ class IRCBot(asyncio.Protocol):
         '''Get the sender nick from a prefix.'''
         return prefix.split('!')[0]
 
-## private conversation
+## commands
 
-    def parse_private(self, prefix, text):
-        '''Parse a private message.'''
+    def parse_commands(self, sender, channel, comm):
 
-        # get the sender
-        sender = self.get_sender(prefix)
-
-        if (text == "quote"):
-            self.conv_quote(sender)
-        elif (text == "check"):
-            self.conv_checkhosts(sender)
-        elif (text == "status"):
-            self.conv_status(sender)
-        elif (text == "help"):
-            self.conv_help(sender)
+        if comm == "quote":
+            self.conv_quote(channel)
+        elif comm == "check":
+            self.conv_checkhosts(channel)
+        elif comm == "status":
+            self.conv_status(channel)
+        elif comm == "help":
+            self.conv_help(channel)
+        elif comm in self.funcomms:
+            self.funcom(channel, comm)
+        elif comm.startswith('addcom'):
+            self.add_funcom(channel, comm)
         else:
-            self.write_msg(sender, "I don't know...")
+            if sender == channel:
+                self.write_msg(channel, config.IDK_ERR)
 
 # replies/actions
+
+    def add_funcom(self, sender, comm):
+        '''add fun command'''
+        scomm = comm.split()
+        if len(scomm) < 3:
+            return
+        funcom = scomm[1]
+        content = " ".join(scomm[2:])
+        if not (funcom.isalnum()):
+            self.write_msg(sender, config.FUNCOMM_ERR)
+            return
+        self.funcomms[funcom] = content
+
+    def funcom(self, sender, comm):
+        '''printout fun command'''
+        print(self.funcomms)
+        self.write_msg(sender, self.funcomms[comm])
 
     def conv_quote(self, sender):
         '''Reply with a fortune.'''

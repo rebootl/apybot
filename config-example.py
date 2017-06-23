@@ -20,3 +20,7 @@ ANTI_FLOOD_DELAY = 1
 # fortune quotes
 FORTUNE_MAX_LENGTH="180"
 FORTUNE_PATH="/usr/games/fortune"
+
+# error msgs
+IDK_ERR = "I don't know..."
+FUNCOMM_ERR = "funcom must start with a ! and otherwise only contain letters and numbers..:p"
